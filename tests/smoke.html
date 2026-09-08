@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>EarLab 自动检查</title><style>
+body{font:14px/1.8 system-ui;background:#f5f6f2;color:#233c2f;margin:30px}button{padding:12px 20px;cursor:pointer}iframe{width:100%;height:500px;border:1px solid #ccc;margin-top:20px}li.pass{color:#277b5d}li.fail{color:#b33}#summary{font-weight:bold}pre{white-space:pre-wrap}
+</style><script src="smoke.js" defer></script></head><body>
+<h1>EarLab 音频与生命周期检查</h1><p>使用真实 Web Audio / OfflineAudioContext。采集接口替换为合成的静音流，不请求麦克风或屏幕权限，不连接真实音频输入；输出在测试期间静音。</p>
+<button id="run" disabled>运行检查</button><p id="summary">等待工作台加载…</p><ol id="results"></ol>
+<iframe id="app" src="../index.html?smoke=ui-layout" title="被测 EarLab 工作台"></iframe>
+</body></html>

@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>EarLab · 入耳式耳机功能扩展工作台 v0.1</title>
+<style>
+:root{
+  --bg0:#0b0e14; --bg1:#10141c; --panel:#161b24; --panel2:#1b2230;
+  --line:#263042; --line2:#33415a;
+  --tx:#e6edf3; --tx2:#9aa7bd; --tx3:#6b7890;
+  --ac:#58a6ff; --a2:#2dd4bf; --b2:#58a6ff; --c2:#b197fc; --d2:#f0a35e;
+  --ok:#3fb950; --warn:#d29922; --danger:#f85149;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{background:var(--bg0); color:var(--tx);
+  font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  font-size:14px; line-height:1.6;}
+body{background:
+  radial-gradient(900px 500px at 15% -10%, rgba(88,166,255,.10), transparent 60%),
+  radial-gradient(800px 500px at 95% 0%, rgba(177,151,252,.09), transparent 55%),
+  var(--bg0);
+  min-height:100vh; padding-bottom:60px;}
+.wrap{max-width:1180px; margin:0 auto; padding:0 16px;}
+
+/* ---------- header ---------- */
+header{position:sticky; top:0; z-index:20; backdrop-filter:blur(10px);
+  background:rgba(11,14,20,.82); border-bottom:1px solid var(--line);}
+.hbar{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 16px; max-width:1180px; margin:0 auto;}
+.logo{display:flex; align-items:center; gap:10px; margin-right:auto;}
+.logo .dot{width:14px;height:14px;border-radius:4px;background:linear-gradient(135deg,#2dd4bf,#58a6ff); box-shadow:0 0 12px rgba(45,212,191,.6);}
+.logo b{font-size:17px; letter-spacing:.5px;}
+.logo span{color:var(--tx3); font-size:12px;}
+
+.btn{border:1px solid var(--line2); background:var(--panel2); color:var(--tx);
+  padding:6px 14px; border-radius:8px; cursor:pointer; font-size:13px; transition:.15s;}
+.btn:hover{border-color:var(--ac); color:var(--ac);}
+.btn:active{transform:translateY(1px);}
+.btn.primary{background:linear-gradient(135deg,#1f6feb,#388bfd); border-color:#1f6feb; color:#fff; font-weight:600;}
+.btn.primary:hover{filter:brightness(1.1); color:#fff;}
+.btn.danger{background:transparent; border-color:rgba(248,81,73,.5); color:var(--danger);}
+.btn.danger:hover{background:rgba(248,81,73,.12); border-color:var(--danger);}
+.btn:disabled{opacity:.4; cursor:not-allowed;}
+.btn small{opacity:.75; font-weight:400;}
+
+/* status strip */
+.status{display:flex; gap:10px 18px; flex-wrap:wrap; align-items:center; padding:8px 16px;
+  background:rgba(255,255,255,.02); border-bottom:1px solid var(--line); font-size:12.5px; color:var(--tx2);}
+.status b{color:var(--tx); font-weight:600;}
+.st{display:inline-flex; align-items:center; gap:6px; white-space:nowrap;}
+.led{width:9px;height:9px;border-radius:50%; background:#3d4a63; display:inline-block;}
+.led.on{background:var(--ok); box-shadow:0 0 8px var(--ok);}
+.led.err{background:var(--danger); box-shadow:0 0 8px var(--danger);}
+.led.warn{background:var(--warn);}
+
+/* ---------- layout ---------- */
+.hero{margin:20px 0 6px;}
+.hero h1{font-size:21px; letter-spacing:.5px;}
+.hero p{color:var(--tx2); font-size:13px; margin-top:4px; max-width:900px;}
+.tip{background:rgba(88,166,255,.08); border:1px solid rgba(88,166,255,.25); border-left:3px solid var(--ac);
+  padding:8px 12px; border-radius:8px; font-size:12.5px; color:#cfe4ff; margin-top:10px;}
+
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(330px,1fr)); gap:16px; margin:18px 0 8px;}
+.card{background:linear-gradient(180deg,var(--panel),var(--bg1)); border:1px solid var(--line);
+  border-radius:14px; padding:14px 16px; display:flex; flex-direction:column; gap:10px;}
+.card .ch{display:flex; align-items:flex-start; gap:10px;}
+.card h3{font-size:15.5px; display:flex; align-items:center; gap:8px;}
+.card h3 .tick{width:9px;height:9px;border-radius:3px;display:inline-block;box-shadow:0 0 10px currentColor;}
+.card .desc{color:var(--tx3); font-size:12px; margin-top:2px;}
+.c-a h3{color:var(--a2);} .c-a{--ac:var(--a2);}
+.c-b h3{color:var(--b2);} .c-b{--ac:var(--b2);}
+.c-c h3{color:var(--c2);} .c-c{--ac:var(--c2);}
+.c-d h3{color:var(--d2);} .c-d{--ac:var(--d2);}
+
+/* switch */
+.sw{position:relative; width:38px; height:21px; flex:0 0 auto; margin-top:1px;}
+.sw input{opacity:0; width:0; height:0;}
+.sw i{position:absolute; inset:0; border-radius:20px; background:#263043; cursor:pointer; transition:.18s; border:1px solid var(--line2);}
+.sw i::after{content:""; position:absolute; width:15px;height:15px; border-radius:50%;
+  background:#8fa0bb; top:2px; left:2px; transition:.18s;}
+.sw input:checked + i{background:var(--ac); border-color:var(--ac);}
+.sw input:checked + i::after{left:18px; background:#fff;}
+
+.row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+.rctl{display:flex; align-items:center; gap:8px; width:100%; margin-top:2px;}
+.rctl label{width:92px; color:var(--tx2); font-size:12.5px; flex:0 0 auto;}
+.rctl input[type=range]{flex:1; min-width:0;}
+.rctl .val{width:52px; text-align:right; color:var(--tx); font-size:12px; font-variant-numeric:tabular-nums;}
+input[type=range]{accent-color:var(--ac); height:4px; cursor:pointer;}
+select,input[type=text]{background:#0d1117; color:var(--tx); border:1px solid var(--line2); border-radius:7px; padding:4px 8px; font-size:12.5px; max-width:100%;}
+select:focus{outline:1px solid var(--ac);}
+.chips{display:flex; gap:6px; flex-wrap:wrap;}
+.chip{font-size:12px; padding:3px 10px; border-radius:20px; border:1px solid var(--line2); background:transparent; color:var(--tx2); cursor:pointer;}
+.chip:hover{border-color:var(--ac); color:var(--ac);}
+.chip.on{background:var(--ac); border-color:var(--ac); color:#fff;}
+
+.meter{height:7px; background:#0d1117; border:1px solid var(--line); border-radius:6px; overflow:hidden;}
+.meter i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#3fb950,#d29922,#f85149); transition:none;}
+.mrow{display:flex; align-items:center; gap:8px; font-size:11px; color:var(--tx3);}
+.mrow .meter{flex:1;}
+.note{font-size:12px; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:rgba(255,255,255,.02); color:var(--tx2);}
+.note.warn{border-color:rgba(210,153,34,.45); background:rgba(210,153,34,.07); color:#e8cf9a;}
+.note.danger{border-color:rgba(248,81,73,.5); background:rgba(248,81,73,.08); color:#f4b5b1;}
+.note b{color:var(--tx);}
+
+canvas.spec{width:100%; height:112px; background:#0a0e14; border:1px solid var(--line); border-radius:8px; display:block;}
+.kbd{display:inline-block; border:1px solid var(--line2); border-bottom-width:2px; padding:0 6px; border-radius:5px; font-size:11px; background:var(--panel2);}
+
+/* details */
+.sec{margin-top:22px;}
+details{border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.015); margin-bottom:12px; overflow:hidden;}
+summary{cursor:pointer; padding:12px 16px; font-weight:600; color:var(--tx); user-select:none;}
+summary:hover{color:var(--ac);}
+details .bd{padding:2px 18px 16px; color:var(--tx2); font-size:13px;}
+details .bd h4{color:var(--tx); margin:12px 0 6px; font-size:13.5px;}
+details .bd ul{margin-left:20px;}
+details .bd li{margin:4px 0;}
+details table{border-collapse:collapse; width:100%; margin:8px 0; font-size:12.5px;}
+details th,details td{border:1px solid var(--line); padding:6px 10px; text-align:left;}
+details th{background:var(--panel2); color:var(--tx);}
+code{background:#0d1117; border:1px solid var(--line2); padding:1px 6px; border-radius:5px; font-size:12px; color:#7ee787;}
+footer{color:var(--tx3); font-size:12px; text-align:center; margin-top:34px;}
+
+#toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:99;
+  background:#1b2230; border:1px solid var(--ac); color:var(--tx); padding:9px 18px; border-radius:10px;
+  font-size:13px; box-shadow:0 8px 30px rgba(0,0,0,.5); opacity:0; transition:.25s; pointer-events:none; max-width:80vw;}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+#toast.err{border-color:var(--danger); color:#ffc9c7;}
+
+.grow{flex:1;}
+.hr{height:1px;background:var(--line); margin:2px 0;}
+@media (max-width:760px){ .grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hbar">
+    <div class="logo"><span class="dot"></span><b>EarLab · 耳机功能扩展工作台</b><span>v0.1 · HTML 原型</span></div>
+    <button id="btnEngine" class="btn primary">▶ 启动音频引擎</button>
+    <button id="btnStop" class="btn" disabled>■ 停止</button>
+    <button id="btnPanic" class="btn danger" title="立即静音并断开所有音频链路（Esc）">紧急停止 (Esc)</button>
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);">
+      <span style="white-space:nowrap">主音量</span>
+      <input id="masterVol" type="range" min="0" max="1.5" step="0.01" value="0.6" style="width:110px;accent-color:var(--ac)">
+      <span id="masterVolV" style="width:38px;color:var(--tx);text-align:right">60%</span>
+    </div>
+  </div>
+  <div class="status">
+    <span class="st"><span id="ledEngine" class="led"></span><span id="stEngine">引擎未启动</span></span>
+    <span class="st">麦克风：<span id="stMic" class="" style="color:var(--tx3)">未获取</span></span>
+    <span class="st">系统音频：<span id="stSys" style="color:var(--tx3)">未捕获</span></span>
+    <span class="st">输出设备：
+      <select id="outDeviceSel" style="width:auto;max-width:200px"><option value="">跟随系统默认（请选耳机）</option></select>
+    </span>
+    <span class="st">音频路径延迟 ≈ <b id="latLabel">--</b> ms</span>
+    <label class="st" style="cursor:pointer" title="浏览器级回音消除，可减少耳返/通透模式啸叫，需重新获取麦克风后生效">
+      <input type="checkbox" id="chkAec" checked> 啸叫抑制(AEC)
+    </label>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="hero">
+    <h1>入耳式耳机功能扩展 · 软件原型</h1>
+    <p>用浏览器 Web Audio 管线实现三大实验能力：<b style="color:var(--a2)">通透模式（环境监听）</b>、<b style="color:var(--b2)">软件声音处理链路（虚拟声卡测试版）</b>、<b style="color:var(--c2)">主动降噪实验（低频反相抵消）</b>，另附测试信号发生器用于调试验证。</p>
+    <div class="tip">⚠ 浏览器原型 ≠ 成品：真正的“系统级虚拟声卡”需要虚拟音频驱动 / WASAPI 环回；真正的 ANC 需要毫秒级以内 DSP 与耳内反馈麦克风。本页先验证<b>算法与体验</b>，限制与路线见文末《原理 · 限制 · 路线图》。</div>
+  </div>
+
+  <!-- 输入源 -->
+  <div class="grid" style="grid-template-columns:1fr 1fr;margin-top:16px">
+    <div class="card c-a">
+      <div class="ch"><h3><span class="tick" style="background:var(--a2);color:var(--a2)"></span>输入 A · 环境/耳机麦克风</h3><div class="grow"></div><button id="btnMic" class="btn">获取麦克风</button></div>
+      <div class="row" style="align-items:center">
+        <label style="font-size:12.5px;color:var(--tx2)">设备：</label>
+        <select id="micDeviceSel" style="flex:1"><option value="">（获取授权后自动选择默认）</option></select>
+      </div>
+      <div class="note">通透模式与 ANC 实验共用此路环境音输入。<b>建议把耳机（含麦克风）设为系统默认播放+录音设备</b>，且佩戴后再打开相关模块，避免外放啸叫。</div>
+    </div>
+    <div class="card c-b">
+      <div class="ch"><h3><span class="tick" style="background:var(--b2);color:var(--b2)"></span>输入 B · 系统声音（环回/虚拟声卡位）</h3><div class="grow"></div><button id="btnSys" class="btn">共享系统音频…</button></div>
+      <div class="row">
+        <button id="btnSysStop" class="btn" style="font-size:12px;padding:3px 10px" disabled>停止共享</button>
+        <span style="font-size:12px;color:var(--tx3)">浏览器内实现“捕获整机声音”的两种方式：</span>
+      </div>
+      <ul style="margin-left:18px;color:var(--tx2);font-size:12.5px">
+        <li>方式① 点上方按钮，在系统弹窗里选择<b>整个屏幕 / 任意窗口</b>并勾选“<b>分享系统音频/选项卡音频</b>”。</li>
+        <li>方式② 启用系统“立体声混音”或安装 <code>VB-Cable / VoiceMeeter</code>，然后把它当作“麦克风设备”在下拉里选择（等效全系统虚拟声卡）。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 模块卡片 -->
+  <div class="grid">
+    <!-- A 通透模式 -->
+    <div class="card c-a">
+      <div class="ch">
+        <h3><span class="tick" style="background:var(--a2);color:var(--a2)"></span>通透模式 · 环境监听</h3>
+        <div class="grow"></div>
+        <label class="sw"><input type="checkbox" id="chkA"><i></i></label>
+      </div>
+      <div class="desc">有线耳机没有环境音补偿时，用麦克风采集周围声音实时送入耳机，实现类似“通透/助听”效果。</div>
+      <div class="rctl"><label>监听音量</label><input id="aVol" type="range" min="0" max="2" step="0.01" value="0.75"><span class="val" id="aVolV">0.75x</span></div>
+      <div class="rctl"><label>低切(高通)</label><input id="aLow" type="range" min="30" max="500" step="5" value="90"><span class="val" id="aLowV">90Hz</span></div>
+      <div class="rctl"><label>空气感/亮度</label><input id="aBright" type="range" min="-8" max="8" step="0.5" value="2"><span class="val" id="aBrightV">+2dB</span></div>
+      <div class="mrow"><span>通路电平</span><span class="meter"><i id="meterA"></i></span><span id="dBA">-∞</span></div>
+      <div class="note warn">开启后<b>务必佩戴耳机</b>并将播放音量从小往上调。耳机密闭性越好越不易啸叫；出现刺耳回授声请立即按 <span class="kbd">Esc</span> 或“紧急停止”。</div>
+    </div>
+
+    <!-- B 声音处理引擎 -->
+    <div class="card c-b">
+      <div class="ch">
+        <h3><span class="tick" style="background:var(--b2);color:var(--b2)"></span>声音处理引擎（虚拟声卡链路）</h3>
+        <div class="grow"></div>
+        <label class="sw"><input type="checkbox" id="chkB"><i></i></label>
+      </div>
+      <div class="desc">把“系统声音/麦克风”接入三段 EQ + 压缩，处理后再送入耳机 —— 即<b>调节系统声音</b>的软件链路雏形。</div>
+      <div class="row">
+        <label style="font-size:12.5px;color:var(--tx2)">处理输入：</label>
+        <select id="selBIn">
+          <option value="sys">系统声音（共享/虚拟线材）</option>
+          <option value="mic">环境麦克风</option>
+        </select>
+        <button id="btnBReset" class="btn" style="font-size:12px;padding:3px 10px">重置</button>
+      </div>
+      <div class="rctl"><label>低频 110Hz</label><input id="bLow" type="range" min="-12" max="12" step="0.5" value="0"><span class="val" id="bLowV">0dB</span></div>
+      <div class="rctl"><label>中频 1kHz</label><input id="bMid" type="range" min="-12" max="12" step="0.5" value="0"><span class="val" id="bMidV">0dB</span></div>
+      <div class="rctl"><label>高频 6kHz</label><input id="bHigh" type="range" min="-12" max="12" step="0.5" value="0"><span class="val" id="bHighV">0dB</span></div>
+      <div class="rctl"><label>输出微调</label><input id="bTrim" type="range" min="-18" max="12" step="0.5" value="0"><span class="val" id="bTrimV">0dB</span></div>
+      <div class="chips" id="bPresets">
+        <button class="chip on" data-p="flat">平直</button>
+        <button class="chip" data-p="bass">低频增强</button>
+        <button class="chip" data-p="vocal">清晰人声</button>
+        <button class="chip" data-p="bright">高频通透</button>
+        <button class="chip" data-p="mon">监听平衡</button>
+      </div>
+      <div class="rctl" style="margin-top:2px"><label style="width:auto">防削波限幅</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--tx2);cursor:pointer">
+          <input type="checkbox" id="chkLim" checked> 安全压缩器（保护耳机与听力，推荐开启）
+        </label></div>
+      <canvas class="spec" id="cvSpec"></canvas>
+      <div class="note">提示：当“处理输入=系统声音”且选择共享屏幕方式时，仅捕获<b>浏览器允许的共享音频</b>；想要“所有应用默认输出”请用虚拟线材/立体声混音方案。</div>
+    </div>
+
+    <!-- C ANC -->
+    <div class="card c-c">
+      <div class="ch">
+        <h3><span class="tick" style="background:var(--c2);color:var(--c2)"></span>主动降噪实验 · ANC(PoC)</h3>
+        <div class="grow"></div>
+        <label class="sw"><input type="checkbox" id="chkC"><i></i></label>
+      </div>
+      <div class="desc">采集环境噪声 → 反相 → 送入耳内叠加抵消。与 AirPods Pro/4 原理一致，但受浏览器延迟限制，<b>只有低频段（数百 Hz 以下）可呈现可感知抵消</b>。</div>
+      <div class="rctl"><label>抵消强度</label><input id="cStr" type="range" min="0" max="100" step="1" value="45"><span class="val" id="cStrV">45%</span></div>
+      <div class="rctl"><label>生效上限频率</label><input id="cCut" type="range" min="60" max="1200" step="10" value="280"><span class="val" id="cCutV">280Hz</span></div>
+      <div class="rctl"><label>相位/延迟补偿</label><input id="cDel" type="range" min="0" max="20" step="0.5" value="1"><span class="val" id="cDelV">1ms</span></div>
+      <div class="row" style="align-items:center">
+        <button id="btnCBypass" class="btn" style="font-size:12px;padding:3px 10px">对比：关闭抵消</button>
+        <span style="font-size:12px;color:var(--tx3)">用按钮 A/B 对比“有/无”低频抵消效果</span>
+      </div>
+      <div class="mrow"><span>反相通路电平</span><span class="meter"><i id="meterC"></i></span><span id="dBC">-∞</span></div>
+      <div class="note danger"><b>重要</b>：本模块是原理验证，<b>不具备听力保护能力</b>，请勿在危险噪音环境下依赖它。调试方法：播放一段持续低频嗡嗡声（电脑风扇/手机低频音源，放在耳机之外），<b>从小音量开始</b>，微调“延迟补偿”直到嗡声变轻；若反而变响或啸叫，立即降低强度或按 <span class="kbd">Esc</span>。</div>
+    </div>
+
+    <!-- D 信号发生器 -->
+    <div class="card c-d">
+      <div class="ch">
+        <h3><span class="tick" style="background:var(--d2);color:var(--d2)"></span>测试信号发生器</h3>
+        <div class="grow"></div>
+        <label class="sw"><input type="checkbox" id="chkD"><i></i></label>
+      </div>
+      <div class="desc">产生扫频/噪声信号用于：验证耳机频响、听感对比、通透链路延迟、ANC 相位调试参考等。</div>
+      <div class="row">
+        <label style="font-size:12.5px;color:var(--tx2)">波形：</label>
+        <select id="selDWave" style="flex:1">
+          <option value="sine">正弦波（单频）</option>
+          <option value="square">方波（奇数谐波多）</option>
+          <option value="sawtooth">锯齿波（全谐波）</option>
+          <option value="noise">白噪声（全频测试）</option>
+          <option value="pink">粉红噪声（听感平坦）</option>
+        </select>
+      </div>
+      <div class="rctl"><label>频率(正弦)</label><input id="dFreq" type="range" min="20" max="4000" step="5" value="100"><span class="val" id="dFreqV">100Hz</span></div>
+      <div class="rctl"><label>输出电平</label><input id="dVol" type="range" min="0" max="0.4" step="0.005" value="0.08"><span class="val" id="dVolV">8%</span></div>
+      <div class="note warn">信号输出到耳机（而非外部环境）。若要为 ANC 提供“外部噪声”，请用<b>另一台设备</b>播放低频音，或用房间内真实噪声源。</div>
+    </div>
+  </div>
+
+  <!-- 说明 -->
+  <div class="sec">
+    <details open>
+      <summary>快速上手（Windows 部署与测试）</summary>
+      <div class="bd">
+        <ol style="margin-left:20px">
+          <li><b>打开本文件</b>：推荐 Chrome / Edge 双击打开，或起本地服务后访问（更稳）：<code>python -m http.server 8000</code> → <code>http://localhost:8000</code>。若嵌在其它面板无法授权麦克风/共享，请改用浏览器直接打开本文件。</li>
+          <li>把<b>有线入耳耳机（含麦）设为系统默认播放与录音设备</b>并佩戴。</li>
+          <li>点【获取麦克风】→ 点【▶ 启动音频引擎】。</li>
+          <li><b>通透模式</b>：打开“通透模式”开关，从小音量上调到舒适位置（AEC 默认开启可防啸叫）。</li>
+          <li><b>虚拟声卡链路</b>：选“处理输入=系统声音”→ 点【共享系统音频…】→ 在弹窗勾选“分享音频”→ 打开引擎开关 → 播放任意系统声音并调节 EQ。整机级替代：启用 Windows <b>立体声混音</b>（右键音量→声音设置→更多声音设置→录制→启用并设为默认），或安装 VB-Cable / VoiceMeeter 后，在麦克风下拉选择其输出。</li>
+          <li><b>ANC 实验</b>：打开开关后用低频噪声源调试“延迟补偿”，详见卡片内说明。</li>
+        </ol>
+      </div>
+    </details>
+
+    <details>
+      <summary>原理 · 限制（为什么要说清楚）</summary>
+      <div class="bd">
+        <h4>1) 虚拟声卡：页面里能做到什么</h4>
+        <p>网页无法注册操作系统级音频设备。真正的虚拟声卡 = 一个“虚拟播放设备”，让所有应用默认输出到它，再由程序处理后转发给物理耳机。浏览器只能通过两条近似路线：</p>
+        <ul>
+          <li>屏幕共享回环（本页已实现，需每次授权）；</li>
+          <li>系统“立体声混音”/ VB-Cable 之类<b>虚拟线材</b>把整机声音呈现为一个麦克风（本页可直接选用，最接近虚拟声卡体验）。</li>
+        </ul>
+        <h4>2) ANC：浏览器为何做不出完整版</h4>
+        <p>噪声抵消要求在噪声到达鼓膜前，发出精确反相的声波。关键指标是<b>端到端延迟</b>：</p>
+        <table>
+          <tr><th>频率</th><th>波长</th><th>浏览器链路 ~30ms 造成的相位误差</th><th>能否抵消</th></tr>
+          <tr><td>100 Hz</td><td>3.4 m</td><td>≈3 个周期内约 11% 相位差</td><td>可部分抵消（低频嗡嗡声变轻）</td></tr>
+          <tr><td>1 kHz</td><td>0.34 m</td><td>≈30 个周期，相位基本随机</td><td>不能，可能反而增强</td></tr>
+        </table>
+        <p>因此本模块把反相信号限制在 <b>300Hz 以下</b>做演示。AirPods 级 ANC 之所以可行，是因为专用 DSP（<b>亚毫秒</b>延迟）+ 耳内反馈麦克风 + 密闭腔体，三者缺一不可——那是硬件方案，不是软件可以替代的。</p>
+        <h4>3) 通透模式：最适合网页实现</h4>
+        <p>麦克风→耳机直通，几十毫秒延迟在人声/环境监听中可接受，配合低切、压缩与 AEC 即得到可用的监听链路。这正是本原型里最“成品化”的一个模块。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>v0.2+ 产品路线图建议（脱离浏览器后）</summary>
+      <div class="bd">
+        <ul>
+          <li><b>v0.2 · Electron 桌面版</b>：Windows 用 <code>WASAPI Loopback</code> 直捕整机声音（免共享弹窗、免虚拟线材），打包成常驻托盘应用，实现真正的“开机即用的软件虚拟声卡 + 全局 EQ”；麦克风侧增加低延迟 ASIO/WASAPI Exclusive 模式。</li>
+          <li><b>v0.3 · 专用 DSP 硬件（ANC 真正的路）</b>：有线耳机线控盒里集成低延迟降噪 DSP（如支持 ANC 的音频 Codec/DSP 芯片），做<b>前馈+反馈双麦克风闭环</b>；或用带 DSP 的 USB 音频方案（XMOS 类）承载 ANC、通透、EQ 三种模式并支持手机直插。</li>
+          <li><b>模式统一入口</b>：通透 / 降噪 / EQ 三种处理在硬件上共享同一条 DSP 管线，用户按场景切换或混合。</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>免责与安全</summary>
+      <div class="bd">
+        <p>本页为实验性软件原型，不构成助听器、听力保护或医疗设备。请始终保持合理音量（建议不超过 85dB 长时间听音），佩戴耳机调试 ANC/通透时从小音量开始，出现不适或啸叫立即停止。麦克风权限与屏幕共享均在本地处理，不上传任何音频数据。</p>
+      </div>
+    </details>
+  </div>
+
+  <footer>EarLab v0.1 · 单文件 HTML 原型 · 数据全程本地处理 · 建议 Chrome/Edge 使用</footer>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+function g(id){ return document.getElementById(id); }
+function toast(msg, isErr){ const t=g('toast'); t.textContent=msg; t.className=isErr?'err show':'show';
+  clearTimeout(t._tm); t._tm=setTimeout(()=>{ t.className=''; }, 3200); }
+
+var state={ ctx:null, master:null, running:false,
+  micStream:null, micSrc:null, micDeviceId:'',
+  sysStream:null, sysSrc:null,
+  aec:true,
+  A:null, B:null, C:null, D:null, raf:0 };
+
+/* ---------- 工具 ---------- */
+function setBtn(id,on,txt){ const b=g(id); b.disabled=!on; if(txt!==undefined) b.textContent=txt; }
+function led(id,cls){ g(id).className='led '+cls; }
+function toDb(v){ return v>1e-8 ? (20*Math.log10(v)).toFixed(1) : '-∞'; }
+function smoothSet(p,v,t){ t=t||0.02; p.setTargetAtTime(v, state.ctx.currentTime, t); }
+
+/* ---------- 引擎 ---------- */
+async function bootEngine(){
+  if(state.ctx) return;
+  try{
+    var AC=window.AudioContext||window.webkitAudioContext;
+    var ctx=new AC({ latencyHint:'interactive' });
+    await ctx.resume();
+    state.ctx=ctx;
+    var m={};
+    m.head=ctx.createGain(); m.head.gain.value=1;
+    m.comp=ctx.createDynamicsCompressor();
+    m.comp.threshold.value=-6; m.comp.knee.value=0; m.comp.ratio.value=20;
+    m.comp.attack.value=0.003; m.comp.release.value=0.12;
+    m.gain=ctx.createGain(); m.gain.gain.value=parseFloat(g('masterVol').value);
+    m.ana=ctx.createAnalyser(); m.ana.fftSize=2048; m.ana.smoothingTimeConstant=0.65;
+    m.rms=ctx.createAnalyser(); m.rms.fftSize=2048; m.rms.smoothingTimeConstant=0.4;
+    m.head.connect(m.comp); m.comp.connect(m.gain); m.gain.connect(ctx.destination);
+    m.head.connect(m.ana); m.gain.connect(m.rms);
+    state.master=m;
+    state.running=true;
+    led('ledEngine','on'); g('stEngine').textContent='引擎运行中';
+    setBtn('btnEngine',false,'● 引擎已启动');
+    setBtn('btnStop',true); setBtn('btnPanic',true);
+    refreshOutputList();
+    startLoop();
+    toast('音频引擎已启动');
+  }catch(e){ console.error(e); toast('引擎启动失败：'+e.message, true); }
+}
+async function fullStop(quiet){
+  stopA(); stopB(); stopC(); stopD();
+  releaseMicCapture(false); releaseSysCapture(false);
+  if(state.ctx){ try{ await state.ctx.close(); }catch(e){} }
+  state.ctx=null; state.master=null; state.running=false;
+  cancelAnimationFrame(state.raf);
+  clearMeters();
+  led('ledEngine',''); g('stEngine').textContent='引擎未启动';
+  setBtn('btnEngine',true,'▶ 启动音频引擎'); setBtn('btnStop',false); setBtn('btnPanic',false);
+  g('latLabel').textContent='--';
+  g('btnMic').textContent='获取麦克风'; g('stMic').textContent='未获取'; g('stMic').style.color='var(--tx3)';
+  g('btnSys').disabled=false; g('btnSys').textContent='共享系统音频…'; g('btnSysStop').disabled=true;
+  g('stSys').textContent='未捕获'; g('stSys').style.color='var(--tx3)';
+  g('chkA').checked=false; g('chkB').checked=false; g('chkC').checked=false; g('chkD').checked=false;
+  if(!quiet) toast('已全部停止');
+}
+
+/* ---------- 主电平 / 频谱循环 ---------- */
+function levelFrom(ana){
+  var d=new Float32Array(ana.fftSize);
+  ana.getFloatTimeDomainData(d);
+  var s=0; for(var i=0;i<d.length;i++) s+=d[i]*d[i];
+  return Math.sqrt(s/d.length);
+}
+function paintMeter(el, dbEl, rms){
+  var pct=Math.max(0, Math.min(100, (rms+66)/66*100 ));
+  if(el) el.style.width=pct+'%';
+  if(dbEl) dbEl.textContent=toDb(rms);
+}
+function clearMeters(){ ['meterA','meterC'].forEach(function(id){ g(id).style.width='0%'; }); g('dBA').textContent='-∞'; g('dBC').textContent='-∞'; }
+function startLoop(){
+  cancelAnimationFrame(state.raf);
+  function loop(){
+    if(!state.ctx||!state.master){ return; }
+    var m=state.master;
+    var lat=(ctxOut()*1000);
+    g('latLabel').textContent=lat.toFixed(0);
+    if(state.A) paintMeter(g('meterA'), g('dBA'), levelFrom(state.A.ana));
+    if(state.C) paintMeter(g('meterC'), g('dBC'), levelFrom(state.C.ana));
+    if(state.B) drawSpec();
+    else if(!state.B && state._specCleared!==true){ drawSpecEmpty(); }
+    state.raf=requestAnimationFrame(loop);
+  }
+  state.raf=requestAnimationFrame(loop);
+}
+function ctxOut(){ var c=state.ctx; if(!c) return 0;
+  return (c.baseLatency||0)+(c.outputLatency||0)+(c.mozAudioFrames?c.mozAudioFrames/48000:0); }
+function drawSpecEmpty(){ var c=g('cvSpec'); var cc=c.getContext('2d'); c.width=c.clientWidth||640; c.height=112; cc.fillStyle='#0a0e14'; cc.fillRect(0,0,c.width,c.height); }
+function drawSpec(){
+  var c=g('cvSpec'); var cc=c.getContext('2d');
+  var W=c.width=c.clientWidth||640; c.height=112; var H=c.height;
+  cc.clearRect(0,0,W,H);
+  var bins=new Uint8Array(state.master.ana.frequencyBinCount);
+  state.master.ana.getByteFrequencyData(bins);
+  var N=Math.min(bins.length, Math.floor(W/2));
+  var maxFreq=state.ctx.sampleRate/2;
+  var grad=cc.createLinearGradient(0,0,W,0);
+  grad.addColorStop(0,'#58a6ff'); grad.addColorStop(.55,'#2dd4bf'); grad.addColorStop(1,'#b197fc');
+  cc.strokeStyle=grad; cc.lineWidth=1.4; cc.beginPath();
+  var x0=0, freqStep=maxFreq/bins.length;
+  for(var i=0;i<N;i++){
+    var f=i*freqStep;
+    var x=Math.log10(1+f/20)/Math.log10(maxFreq/20)*W;
+    var y=H-(bins[i]/255)*H;
+    if(i===0) cc.moveTo(x,y); else cc.lineTo(x,y);
+  }
+  cc.stroke();
+  cc.fillStyle='rgba(154,167,189,.5)'; cc.font='9px sans-serif';
+  [100,1000,10000].forEach(function(f){
+    var x=Math.log10(1+f/20)/Math.log10(maxFreq/20)*W;
+    cc.fillText((f>=1000?(f/1000)+'k':f), x+2, H-3);
+  });
+}
+
+/* ---------- 设备列表 / 输出 ---------- */
+async function refreshOutputList(){
+  try{
+    var devs=await navigator.mediaDevices.enumerateDevices();
+    var outs=devs.filter(function(d){ return d.kind==='audiooutput'; });
+    var sel=g('outDeviceSel'); var cur=sel.value;
+    sel.innerHTML='<option value="">跟随系统默认（请选耳机）</option>';
+    outs.forEach(function(d){ if(d.deviceId){ var o=document.createElement('option'); o.value=d.deviceId; o.textContent=d.label||('输出 '+outs.indexOf(d)); sel.appendChild(o); } });
+    if(cur) sel.value=cur;
+  }catch(e){}
+}
+function bindOutput(){
+  var sel=g('outDeviceSel');
+  sel.onchange=function(){
+    if(state.ctx && state.ctx.setSinkId && sel.value){
+      state.ctx.setSinkId(sel.value).then(function(){ toast('输出已切到所选设备'); })
+        .catch(function(e){ toast('切换输出失败（继续用系统默认）', true); });
+    } else { toast('此浏览器不支持热切输出设备，请在系统里把默认播放设备设为耳机'); }
+  };
+}
+
+/* ---------- 麦克风捕获 ---------- */
+async function grabMic(autoFirst){
+  if(state.micStream) return true;
+  if(!state.ctx) await bootEngine();
+  var audio={ echoCancellation:state.aec, noiseSuppression:false, autoGainControl:false };
+  if(state.micDeviceId) audio.deviceId={ exact:state.micDeviceId };
+  try{
+    var st=await navigator.mediaDevices.getUserMedia({ audio:audio });
+    state.micStream=st;
+    state.micSrc=state.ctx.createMediaStreamSource(st);
+    var tr=st.getAudioTracks()[0];
+    if(tr) tr.onended=function(){ releaseMicCapture(true); };
+    g('stMic').textContent=tr?tr.label:'已获取'; g('stMic').style.color='var(--ok)';
+    setBtn('btnMic',true,'释放麦克风');
+    await fillMicList(st);
+    if(autoFirst){ enableA(true); enableC(true); } else { rebuildAllUsing('mic'); }
+    toast('麦克风已就绪：'+(tr?tr.label:''));
+    return true;
+  }catch(e){
+    console.error(e);
+    uncheckMicMods();
+    toast('获取麦克风失败：'+(e&&e.message?e.message:e), true);
+    return false;
+  }
+}
+async function fillMicList(st){
+  try{
+    var devs=await navigator.mediaDevices.enumerateDevices();
+    var ins=devs.filter(function(d){ return d.kind==='audioinput'; });
+    var sel=g('micDeviceSel'); var cur=state.micDeviceId;
+    sel.innerHTML='';
+    ins.forEach(function(d){ var o=document.createElement('option'); o.value=d.deviceId; o.textContent=d.label||'麦克风'; sel.appendChild(o); });
+    if(cur && sel.querySelector('option[value="'+cur+'"]')) sel.value=cur;
+  }catch(e){}
+}
+function uncheckMicMods(){
+  g('chkA').checked=false; g('chkC').checked=false;
+  if(g('selBIn').value==='mic') g('chkB').checked=false;
+}
+function releaseMicCapture(notify){
+  stopUsing('mic');
+  if(state.micStream){ state.micStream.getTracks().forEach(function(t){ t.stop(); }); }
+  state.micStream=null; state.micSrc=null;
+  if(notify){ g('stMic').textContent='未获取'; g('stMic').style.color='var(--tx3)'; setBtn('btnMic',true,'获取麦克风'); uncheckMicMods(); toast('麦克风已释放'); }
+}
+function regrabMic(){
+  var oldAEC=state.aec;
+  releaseMicCapture(false);
+  state.aec=oldAEC;
+  grabMic(false).then(function(ok){ if(!ok) toast('重新获取麦克风失败', true); });
+}
+
+/* ---------- 系统声音捕获 ---------- */
+async function grabSys(){
+  if(state.sysStream) return true;
+  if(!state.ctx) await bootEngine();
+  try{
+    var st=await navigator.mediaDevices.getDisplayMedia({
+      video:{ frameRate:{ ideal:1 } }, audio:{ echoCancellation:false, noiseSuppression:false }
+    });
+    var vt=st.getVideoTracks();
+    vt.forEach(function(t){ t.enabled=false; }); // 仅留音频，避免画面采集
+    var at=st.getAudioTracks()[0];
+    if(!at){ toast('未能获得系统音频（请勾选“分享音频”）', true); return false; }
+    state.sysStream=st;
+    state.sysSrc=state.ctx.createMediaStreamSource(st);
+    at.onended=function(){ releaseSysCapture(true); };
+    g('stSys').textContent=at.label||'已捕获'; g('stSys').style.color='var(--ok)';
+    g('btnSys').disabled=true; g('btnSys').textContent='共享中…';
+    g('btnSysStop').disabled=false;
+    toast('系统声音已接入（若无声请确认共享弹窗勾选了音频）');
+    rebuildUsing('sys');
+    return true;
+  }catch(e){
+    if(e && e.name!=='NotAllowedError') toast('共享失败：'+e.message, true);
+    return false;
+  }
+}
+function releaseSysCapture(notify){
+  if(state.B && state.B.from==='sys') stopB();
+  if(state.sysStream){ state.sysStream.getTracks().forEach(function(t){ t.stop(); }); }
+  state.sysStream=null; state.sysSrc=null;
+  if(notify){ g('stSys').textContent='未捕获'; g('stSys').style.color='var(--tx3)'; g('btnSys').disabled=false; g('btnSys').textContent='共享系统音频…'; g('btnSysStop').disabled=true; if(g('selBIn').value==='sys') g('chkB').checked=false; }
+}
+
+/* ---------- 模块 A 通透 ---------- */
+function stopA(){ if(state.A){ var a=state.A;
+  if(state.micSrc){ try{ state.micSrc.disconnect(a.head); }catch(e){} }
+  try{ a.head.disconnect(); }catch(e){}
+  state.A=null; g('meterA').style.width='0%'; g('dBA').textContent='-∞';
+} }
+function buildA(){
+  if(!state.micSrc){ toast('请先获取麦克风', true); g('chkA').checked=false; return false; }
+  var ctx=state.ctx;
+  var hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.Q.value=0.9;
+  hp.frequency.value=parseFloat(g('aLow').value);
+  var hs=ctx.createBiquadFilter(); hs.type='highshelf'; hs.frequency.value=5200;
+  hs.gain.value=parseFloat(g('aBright').value);
+  var vol=ctx.createGain(); vol.gain.value=parseFloat(g('aVol').value);
+  var lim=ctx.createDynamicsCompressor(); lim.threshold.value=-9; lim.knee.value=4;
+  lim.ratio.value=14; lim.attack.value=0.004; lim.release.value=0.18;
+  var ana=ctx.createAnalyser(); ana.fftSize=2048; ana.smoothingTimeConstant=0.35;
+  state.micSrc.connect(hp); hp.connect(hs); hs.connect(vol); vol.connect(lim);
+  lim.connect(state.master.head); lim.connect(ana);
+  state.A={ head:hp, ana:ana };
+  toast('通透模式已开启：先从小音量试听');
+  return true;
+}
+function enableA(on){
+  if(on){ if(!state.ctx){ bootEngine().then(function(){ enableA(true); }); return; }
+    grabMic(false).then(function(ok){ if(!ok) return;
+      if(buildA()){ g('chkA').checked=true; } });
+  } else { stopA(); g('chkA').checked=false; }
+}
+function rebuildA(){ if(g('chkA').checked){ stopA(); buildA(); } }
+
+/* ---------- 模块 B EQ ---------- */
+var BPRESETS={ flat:[0,0,0], bass:[9,0,0], vocal:[-2,6,2], bright:[0,-1,7], mon:[3,0,2] };
+function stopB(){ if(state.B){ var b=state.B;
+  if(b.src){ try{ b.src.disconnect(b.head); }catch(e){} }
+  try{ b.head.disconnect(); }catch(e){}
+  state.B=null; drawSpecEmpty();
+} }
+function buildB(){
+  var useSys=(g('selBIn').value==='sys');
+  var src=useSys?state.sysSrc:state.micSrc;
+  if(!src){ toast(useSys?'请先捕获系统声音（共享或虚拟线材）':'请先获取麦克风', true); g('chkB').checked=false; return false; }
+  var ctx=state.ctx;
+  var hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=18; hp.Q.value=0.7;
+  var ls=ctx.createBiquadFilter(); ls.type='lowshelf'; ls.frequency.value=110;
+  ls.gain.value=parseFloat(g('bLow').value);
+  var pk=ctx.createBiquadFilter(); pk.type='peaking'; pk.frequency.value=1000; pk.Q.value=1.0;
+  pk.gain.value=parseFloat(g('bMid').value);
+  var hs=ctx.createBiquadFilter(); hs.type='highshelf'; hs.frequency.value=6000;
+  hs.gain.value=parseFloat(g('bHigh').value);
+  var trim=ctx.createGain(); trim.gain.value=db2lin(parseFloat(g('bTrim').value));
+  var nodes=[hp,ls,pk,hs,trim];
+  var tail=nodes[nodes.length-1];
+  if(g('chkLim').checked){
+    var lim=ctx.createDynamicsCompressor(); lim.threshold.value=-4; lim.knee.value=2;
+    lim.ratio.value=18; lim.attack.value=0.003; lim.release.value=0.14;
+    nodes.push(lim); tail=lim;
+  }
+  src.connect(nodes[0]);
+  for(var i=0;i<nodes.length-1;i++) nodes[i].connect(nodes[i+1]);
+  tail.connect(state.master.head);
+  state.B={ head:nodes[0], tail:tail, from:useSys?'sys':'mic', src:src };
+  return true;
+}
+function db2lin(db){ return Math.pow(10, db/20); }
+function enableB(on){
+  if(on){ if(!state.ctx){ bootEngine().then(function(){ enableB(true); }); return; }
+    var useSys=(g('selBIn').value==='sys');
+    var need = useSys ? grabSys() : grabMic(false);
+    Promise.resolve(need).then(function(ok){ if(!ok) return;
+      if(buildB()){ g('chkB').checked=true; } });
+  } else { stopB(); g('chkB').checked=false; }
+}
+function rebuildB(){ if(g('chkB').checked){ stopB(); buildB(); } }
+
+/* ---------- 模块 C ANC ---------- */
+var cBypass=false;
+function stopC(){ if(state.C){ var c=state.C;
+  if(state.micSrc){ try{ state.micSrc.disconnect(c.head); }catch(e){} }
+  try{ c.head.disconnect(); }catch(e){}
+  state.C=null; g('meterC').style.width='0%'; g('dBC').textContent='-∞';
+  g('btnCBypass').textContent='对比：关闭抵消'; cBypass=false;
+} }
+function buildC(){
+  if(!state.micSrc){ toast('请先获取麦克风', true); g('chkC').checked=false; return false; }
+  var ctx=state.ctx;
+  var hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=24; hp.Q.value=0.7;
+  var lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.Q.value=0.9;
+  lp.frequency.value=parseFloat(g('cCut').value);
+  var dl=ctx.createDelay(0.05); dl.delayTime.value=parseFloat(g('cDel').value)/1000;
+  var inv=ctx.createGain();
+  var out=ctx.createGain(); out.gain.value=1;
+  var ana=ctx.createAnalyser(); ana.fftSize=2048; ana.smoothingTimeConstant=0.35;
+  state.micSrc.connect(hp); hp.connect(lp); lp.connect(dl); dl.connect(inv);
+  inv.connect(out); out.connect(state.master.head); out.connect(ana);
+  var nodes=[hp,lp,dl,inv,out];
+  var c={ head:hp, inv:inv, ana:ana };
+  state.C=c;
+  applyCStrength();
+  return true;
+}
+function applyCStrength(){
+  if(!state.C) return;
+  var mag=(parseFloat(g('cStr').value)/100)*0.6;
+  var val=cBypass?0:-mag;
+  smoothSet(state.C.inv.gain, val, 0.03);
+}
+function enableC(on){
+  if(on){ if(!state.ctx){ bootEngine().then(function(){ enableC(true); }); return; }
+    grabMic(false).then(function(ok){ if(!ok) return;
+      if(buildC()){ g('chkC').checked=true; toast('ANC 实验开启：请小音量开始，用低频噪声调试'); } });
+  } else { stopC(); g('chkC').checked=false; }
+}
+function rebuildC(){ if(g('chkC').checked){ stopC(); buildC(); } }
+
+/* ---------- 模块 D 发生器 ---------- */
+var noiseBuf=null;
+function buildNoiseBuf(ctx,type){
+  var len=ctx.sampleRate*2;
+  var buf=ctx.createBuffer(1,len,ctx.sampleRate);
+  var d=buf.getChannelData(0);
+  var b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+  for(var i=0;i<len;i++){
+    var w=Math.random()*2-1;
+    if(type==='pink'){
+      b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759;
+      b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856;
+      b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980;
+      d[i]=(b0+b1+b2+b3+b4+b5+b6+w*0.5362)*0.11; b6=w*0.115926;
+    } else {
+      d[i]=w;
+    }
+  }
+  return buf;
+}
+function stopD(){ if(state.D){ var d=state.D;
+  try{ d.gain.disconnect(); }catch(e){}
+  if(d.osc){ try{ d.osc.stop(); }catch(e){} }
+  if(d.noise){ try{ d.noise.stop(); }catch(e){} }
+  state.D=null;
+} }
+function buildD(){
+  var ctx=state.ctx;
+  var gd=ctx.createGain(); gd.gain.value=parseFloat(g('dVol').value);
+  gd.connect(state.master.head);
+  var wave=g('selDWave').value;
+  var D={ gain:gd, osc:null, noise:null };
+  if(wave==='noise'||wave==='pink'){
+    if(!noiseBuf) noiseBuf=buildNoiseBuf(ctx,wave);
+    else if(state._noiseType!==wave){ noiseBuf=buildNoiseBuf(ctx,wave); }
+    state._noiseType=wave;
+    var ns=ctx.createBufferSource(); ns.buffer=noiseBuf; ns.loop=true;
+    ns.connect(gd); ns.start();
+    D.noise=ns;
+  } else {
+    var osc=ctx.createOscillator(); osc.type=wave;
+    osc.frequency.value=parseFloat(g('dFreq').value);
+    osc.connect(gd); osc.start();
+    D.osc=osc;
+  }
+  state.D=D;
+  return true;
+}
+function enableD(on){
+  if(on){ if(!state.ctx){ bootEngine().then(function(){ enableD(true); }); return; }
+    if(buildD()){ g('chkD').checked=true; } }
+  else { stopD(); g('chkD').checked=false; }
+}
+function rebuildD(){ if(g('chkD').checked){ stopD(); buildD(); } }
+
+/* ---------- 依赖管理 ---------- */
+function stopUsing(kind){
+  if(state.A && kind==='mic') stopA();
+  if(state.C && kind==='mic') stopC();
+  if(state.B && ((kind==='mic'&&state.B.from==='mic')||(kind==='sys'&&state.B.from==='sys'))) stopB();
+}
+function rebuildAllUsing(kind){
+  if(state.B && state.B.from===kind && g('chkB').checked){ stopB(); buildB(); }
+  if(kind==='mic'){ rebuildA(); rebuildC(); }
+}
+function rebuildUsing(kind){
+  if(state.B && state.B.from===kind && g('chkB').checked){ stopB(); buildB(); }
+}
+
+/* ---------- UI 事件 ---------- */
+function bindUI(){
+  g('btnEngine').onclick=function(){ bootEngine(); };
+  g('btnStop').onclick=function(){ fullStop(false); };
+  g('btnPanic').onclick=function(){ panic(); };
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') panic(); });
+
+  g('masterVol').oninput=function(){
+    var v=parseFloat(this.value); g('masterVolV').textContent=Math.round(v*100)+'%';
+    if(state.master) smoothSet(state.master.gain.gain, v, 0.01);
+  };
+  bindOutput();
+
+  g('btnMic').onclick=function(){
+    if(state.micStream){ releaseMicCapture(true); }
+    else { grabMic(false); }
+  };
+  g('micDeviceSel').onchange=function(){
+    state.micDeviceId=this.value||'';
+    if(state.micStream){ regrabMic(); }
+  };
+  g('chkAec').onchange=function(){
+    state.aec=this.checked;
+    if(state.micStream){ regrabMic(); toast('AEC 设置已生效（麦克风已重启）'); }
+  };
+
+  g('btnSys').onclick=function(){ grabSys(); };
+  g('btnSysStop').onclick=function(){ releaseSysCapture(true); };
+
+  g('chkA').onchange=function(){ enableA(this.checked); };
+  ['aVol','aLow','aBright'].forEach(function(id){
+    g(id).oninput=function(){
+      g(id+'V').textContent= id==='aVol' ? parseFloat(this.value).toFixed(2)+'x'
+        : id==='aLow' ? Math.round(this.value)+'Hz' : (this.value>0?'+':'')+this.value+'dB';
+      if(state.A) rebuildA();
+    };
+  });
+
+  g('chkB').onchange=function(){ enableB(this.checked); };
+  g('selBIn').onchange=function(){
+    if(g('chkB').checked){ stopB(); var useSys=this.value==='sys';
+      var need=useSys?grabSys():grabMic(false);
+      Promise.resolve(need).then(function(ok){ if(ok) buildB(); else g('chkB').checked=false; });
+    }
+  };
+  g('chkLim').onchange=function(){ if(g('chkB').checked) rebuildB(); };
+  ['bLow','bMid','bHigh','bTrim'].forEach(function(id){
+    g(id).oninput=function(){
+      var v=parseFloat(this.value);
+      g(id+'V').textContent=(v>0?'+':'')+v.toFixed(1)+(id==='bTrim'?'dB':'dB');
+      if(state.B) rebuildB();
+    };
+  });
+  g('btnBReset').onclick=function(){
+    g('bLow').value=0; g('bMid').value=0; g('bHigh').value=0; g('bTrim').value=0;
+    g('bLowV').textContent='0dB'; g('bMidV').textContent='0dB'; g('bHighV').textContent='0dB'; g('bTrimV').textContent='0dB';
+    g('chkLim').checked=true;
+    markPreset('flat');
+    if(state.B) rebuildB();
+  };
+  var chips=g('bPresets').querySelectorAll('.chip');
+  chips.forEach(function(ch){
+    ch.onclick=function(){
+      var p=ch.getAttribute('data-p'); var v=BPRESETS[p]; if(!v) return;
+      g('bLow').value=v[0]; g('bMid').value=v[1]; g('bHigh').value=v[2];
+      g('bLowV').textContent=v[0]+'dB'; g('bMidV').textContent=v[1]+'dB'; g('bHighV').textContent=v[2]+'dB';
+      markPreset(p);
+      if(state.B) rebuildB();
+    };
+  });
+  function markPreset(p){ chips.forEach(function(c){ c.classList.toggle('on', c.getAttribute('data-p')===p); }); }
+
+  g('chkC').onchange=function(){ enableC(this.checked); };
+  g('cStr').oninput=function(){ g('cStrV').textContent=this.value+'%'; if(state.C) applyCStrength(); };
+  g('cCut').oninput=function(){ g('cCutV').textContent=this.value+'Hz'; if(state.C) rebuildC(); };
+  g('cDel').oninput=function(){ g('cDelV').textContent=this.value+'ms'; if(state.C) rebuildC(); };
+  g('btnCBypass').onclick=function(){
+    if(!state.C){ toast('请先开启 ANC 实验', true); return; }
+    cBypass=!cBypass;
+    g('btnCBypass').textContent=cBypass?'对比：启用抵消':'对比：关闭抵消';
+    applyCStrength();
+  };
+
+  g('chkD').onchange=function(){ enableD(this.checked); };
+  g('selDWave').onchange=function(){
+    var v=this.value;
+    g('dFreq').disabled=(v==='noise'||v==='pink');
+    if(state.D) rebuildD();
+  };
+  g('dFreq').oninput=function(){ g('dFreqV').textContent=this.value+'Hz'; if(state.D) rebuildD(); };
+  g('dVol').oninput=function(){ g('dVolV').textContent=Math.round(this.value/0.4*100)+'%'; if(state.D) rebuildD(); };
+  g('dFreq').disabled=false;
+
+  refreshOutputList();
+}
+function panic(){
+  fullStop(false);
+  toast('紧急停止：已静音并断开所有链路', true);
+}
+document.addEventListener('DOMContentLoaded', bindUI);
+</script>
+</body>
+</html>
