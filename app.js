@@ -2,7 +2,7 @@
 
 // No network requests, audio uploads, external libraries, or background workers.
 const $ = id => document.getElementById(id);
-const FREQUENCIES = [60, 170, 500, 1000, 4000, 12000];
+const FREQUENCIES = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 12000, 16000, 20000];
 const PRESETS = {
   flat: { gains: [0, 0, 0, 0, 0, 0], text: '忠于原声，保留每一个细节。' },
   bass: { gains: [5, 3, 0, -1, 0, 1], text: '多一点低频，保留清晰的轮廓。' },
@@ -15,10 +15,14 @@ const SCENES = {
   game: { label: '游戏定位', gains: [-2, -1, 1, 2, 4, 1], text: '收敛轰鸣，突出脚步、换弹和空间细节。', protect: [-10, 6] },
   night: { label: '夜间舒适', gains: [-1, 0, 1, 2, -1, -2], text: '缩小动态起伏，小音量也更容易听清。', protect: [-22, 12] }
 };
+
+const expandGains = gains => gains.length === 12 ? gains : gains.flatMap(v => [v, v]);
+Object.values(PRESETS).forEach(preset => { preset.gains = expandGains(preset.gains); });
+Object.values(SCENES).forEach(scene => { scene.gains = expandGains(scene.gains); });
 const state = {
   ctx: null, ready: null, generation: 0, graph: null, muted: false,
-  eq: [0, 0, 0, 0, 0, 0], preset: 'flat',
-  scene: 'daily', bass: 0, clarity: 0, balance: 0, dynamic: true, protect: true, dynamicEQ: [0, 0, 0, 0, 0, 0],
+  eq: Array(12).fill(0), preset: 'flat',
+  scene: 'daily', bass: 0, clarity: 0, balance: 0, dynamic: true, protect: true, dynamicEQ: Array(12).fill(0), aiMode: 'balanced', aiEnabled: false,
   mic: null, micToken: 0, system: null, systemToken: 0,
   ancLive: null, ancLiveToken: 0, ancLivePending: false, ancTone: null,
   fileBuffer: null, fileName: '', fileSource: null, fileOffset: 0, fileStarted: 0, fileToken: 0,
@@ -569,6 +573,8 @@ function initEnhancement() {
   $('taste-clarity').addEventListener('input', event => { state.clarity = Number(event.target.value); applyEnhancement(); });
   $('balance').addEventListener('input', event => { state.balance = Number(event.target.value); applyEnhancement(); });
   $('dynamic-eq').addEventListener('change', event => { state.dynamic = event.target.checked; if (!state.dynamic) state.dynamicEQ.fill(0); applyEnhancement(); });
+  $('ai-adaptive').addEventListener('change', event => { state.aiEnabled = event.target.checked; if (!state.aiEnabled) state.dynamicEQ.fill(0); $('ai-state').textContent = state.aiEnabled ? '开启' : '关闭'; applyEQ(); });
+  $('ai-mode').addEventListener('change', event => { state.aiMode = event.target.value; });
   $('safe-limit').addEventListener('change', event => { state.protect = event.target.checked; applyEnhancement(); });
   applyEnhancement(false);
 }
@@ -576,7 +582,7 @@ function initEQ() {
   try {
     const stored = JSON.parse(localStorage.getItem('earlab-eq-v2'));
     if (Array.isArray(stored?.eq) && stored.eq.length === 6 && stored.eq.every(n => Number.isFinite(n) && n >= -6 && n <= 6)) {
-      state.eq = stored.eq;
+      state.eq = stored.eq.length === 12 ? stored.eq : stored.eq.flatMap((v, i) => [v, v]);
       state.preset = Object.keys(PRESETS).find(key => PRESETS[key].gains.every((n, i) => n === state.eq[i])) || 'custom';
     }
   } catch (_) { /* malformed or unavailable storage uses defaults */ }
@@ -616,17 +622,23 @@ function spectrumBandAverage(spectrum, analyser, fromHz, toHz) {
   return count ? total / count : 0;
 }
 function updateDynamicEQ(spectrum, analyser) {
-  if (!state.dynamic) return;
-  const low = spectrumBandAverage(spectrum, analyser, 45, 180);
-  const high = spectrumBandAverage(spectrum, analyser, 4000, 12000);
-  const next = [0, 0, 0, 0, 0, 0];
-  let text = '开启';
-  if (low > high + 28) { next[0] = -1.2; next[1] = -0.8; text = '收低频'; }
-  if (high > low + 35) { next[4] = -0.8; next[5] = -1.2; text = '柔高频'; }
-  if (next.some((value, index) => value !== state.dynamicEQ[index])) {
-    state.dynamicEQ = next; applyEQ();
-  }
-  $('dynamic-state').textContent = text;
+  if (!state.dynamic && !state.aiEnabled) return;
+  const band = (a,b) => spectrumBandAverage(spectrum, analyser, a, b);
+  const low=band(35,180), body=band(180,900), vocal=band(900,3000), high=band(5000,16000);
+  const next=Array(12).fill(0); let text='开启';
+  if(state.aiEnabled){
+    const target=state.aiMode;
+    if(low>body+18){ next[0]=-1.2; next[1]=-1; next[2]=-.6; text='AI 正在收低频'; }
+    if(body>vocal+10){ next[3]=-.7; next[4]=-.5; next[5]=.7; text='AI 正在减少闷感'; }
+    if(vocal<low-8){ next[5]=.8; next[6]=1.0; next[7]= target==='vocal'?1.3:.6; text='AI 正在增强人声'; }
+    if(high>vocal+25){ next[8]=-.6; next[9]=-.9; next[10]=-.8; text='AI 正在柔化高频'; }
+    if(target==='immersive'){ next[1]+=0.4; next[2]+=0.3; next[8]+=0.3; }
+    if(target==='vocal'){ next[5]+=0.4; next[6]+=0.5; }
+  } else if(low>high+28){ next[0]=-1.2; next[1]=-.8; text='收低频'; }
+  else if(high>low+35){ next[8]=-.8; next[9]=-1.2; text='柔高频'; }
+  const smooth=next.map((v,i)=>state.dynamicEQ[i]*.82+v*.18);
+  if(smooth.some((v,i)=>Math.abs(v-state.dynamicEQ[i])>.05)){ state.dynamicEQ=smooth; applyEQ(); }
+  $('dynamic-state').textContent=text;
 }
 function drawSpectrum() {
   if (state.page !== 'studio') return;
