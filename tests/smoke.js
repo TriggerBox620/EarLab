@@ -82,6 +82,29 @@ run.addEventListener('click', async () => {
       if (!el('dynamic-eq').checked) el('dynamic-eq').click();
       if (!el('safe-limit').checked) el('safe-limit').click();
     });
+    await test('惊喜增强提供原声直通与器乐表现预设', async () => {
+      const raw = d.querySelector('[data-scene="raw"]');
+      const instrumental = d.querySelector('[data-scene="instrumental"]');
+      assert(raw && instrumental, '新增增强场景缺失');
+
+      d.querySelector('[data-preset="flat"]').click();
+      raw.click();
+      assert(el('enhancement-mode').textContent.includes('原声'), '原声直通场景未激活');
+      const rawGains = w.effectiveGains();
+      assert(rawGains.every(gain => gain === 0), '原声直通不应添加场景增益');
+      input('taste-bass', '2');
+      assert(w.effectiveGains()[0] > 0, '原声直通仍应允许个性化设置叠加');
+
+      instrumental.click();
+      assert(el('enhancement-mode').textContent.includes('器乐'), '器乐表现场景未激活');
+      const instrumentalGains = w.effectiveGains();
+      assert(instrumentalGains[4] > instrumentalGains[0], '器乐表现应突出中高频细节');
+      const saved = JSON.parse(w.localStorage.getItem('earlab-enhancement-v1'));
+      assert(saved.scene === 'instrumental', '新增场景未本地保存');
+
+      d.querySelector('[data-scene="daily"]').click();
+      input('taste-bass', '0');
+    });
     await test('引擎可启动，重复调用复用同一上下文', async () => {
       const [a, b] = await Promise.all([w.ensureEngine(), w.ensureEngine()]);
       assert(a === b && a.state === 'running', 'Engine was duplicated or failed to run');

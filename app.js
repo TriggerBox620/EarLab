@@ -10,10 +10,12 @@ const PRESETS = {
   soft: { gains: [1, 0, 0, -1, -3, -2], text: '收敛高频，适合轻松聆听。' }
 };
 const SCENES = {
+  raw: { label: '原声直通', gains: [0, 0, 0, 0, 0, 0], text: '不额外改变网页音频的频响，保留原始听感。', protect: [-3, 1] },
   daily: { label: '日常增强', gains: [2, 1, 0, 0, 1, 1], text: '轻微抬升低频和空气感，让普通有线耳机更饱满。', protect: [-12, 8] },
   voice: { label: '人声清晰', gains: [-3, -2, 1, 3, 2, -1], text: '把对白和会议人声推到前面，压住浑浊低频。', protect: [-14, 10] },
   game: { label: '游戏定位', gains: [-2, -1, 1, 2, 4, 1], text: '收敛轰鸣，突出脚步、换弹和空间细节。', protect: [-10, 6] },
-  night: { label: '夜间舒适', gains: [-1, 0, 1, 2, -1, -2], text: '缩小动态起伏，小音量也更容易听清。', protect: [-22, 12] }
+  night: { label: '夜间舒适', gains: [-1, 0, 1, 2, -1, -2], text: '缩小动态起伏，小音量也更容易听清。', protect: [-22, 12] },
+  instrumental: { label: '器乐表现', gains: [-3, -2, -1, 1, 3, 3], text: '收敛低频浑浊，突出乐器的轮廓、层次与泛音。', protect: [-12, 8] }
 };
 
 const expandGains = gains => gains.length === 12 ? gains : gains.flatMap(v => [v, v]);
